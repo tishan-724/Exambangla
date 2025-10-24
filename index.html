@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ExamBangla — Next Level (Share Card + Leaderboard)</title>
+<meta name="description" content="ExamBangla: Class 6-9 quiz system with timer, leaderboard and uneditable share card (image)." />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Noto+Sans+Bengali:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg1:#0f172a; --bg2:#3b82f6;
+  --card: rgba(255,255,255,0.06);
+  --muted: rgba(255,255,255,0.85);
+  --accent:#06b6d4;
+  --ok:#10b981; --err:#ef4444;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; min-height:100vh; font-family:'Poppins','Noto Sans Bengali',sans-serif;
+  background: linear-gradient(135deg,var(--bg1),#1f2937 60%,var(--bg2));
+  color:#fff; display:flex; align-items:flex-start; justify-content:center; padding:24px;
+}
+.app { width:100%; max-width:1000px; }
+.header { display:flex; gap:12px; align-items:center; margin-bottom:16px; }
+.logo { width:64px;height:64px;border-radius:12px;background:linear-gradient(180deg,#fff,#f1f1f1); color:#111; display:flex;align-items:center;justify-content:center;font-weight:800; box-shadow:0 12px 30px rgba(0,0,0,0.3); }
+.h1 { margin:0; font-size:20px; line-height:1; }
+.h2 { margin:4px 0 0 0; font-size:13px; color:rgba(255,255,255,0.85); }
+
+.grid { display:grid; grid-template-columns: 1fr 360px; gap:18px; }
+@media(max-width:980px){ .grid{ grid-template-columns:1fr } }
+
+.card {
+  background: var(--card); border-radius:14px; padding:16px; backdrop-filter: blur(8px);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.35);
+}
+.title { font-weight:700; font-size:18px; margin-bottom:6px; }
+.small { font-size:13px; color:rgba(255,255,255,0.85); }
+
+.row { display:flex; gap:10px; flex-wrap:wrap; margin-top:8px; }
+.btn { padding:10px 12px; border-radius:10px; border:none; cursor:pointer; font-weight:700; background:linear-gradient(90deg,#ff8a8a,#ff6b6b); color:#fff; }
+.btn.secondary { background:linear-gradient(90deg,#06b6d4,#3b82f6); color:#042a2b; }
+.btn.ghost { background:transparent; border:1px solid rgba(255,255,255,0.08); color:var(--muted); }
+
+.select { width:100%; padding:10px; border-radius:8px; border:none; outline:none; font-weight:700; margin-top:8px; }
+
+.quiz-area { display:flex; flex-direction:column; gap:12px; }
+.question { font-size:20px; font-weight:700; text-align:center; padding:8px; }
+.options { display:flex; flex-direction:column; gap:10px; }
+.opt { padding:12px; border-radius:10px; border:none; background:rgba(255,255,255,0.05); color:#fff; font-weight:700; cursor:pointer; transition:transform .12s, box-shadow .12s; }
+.opt:hover{ transform: translateY(-4px) }
+.opt.correct{ background: linear-gradient(90deg,var(--ok),#05a66b); box-shadow:0 18px 40px rgba(16,185,129,0.08); }
+.opt.wrong{ background: linear-gradient(90deg,var(--err),#f43f5e); box-shadow:0 18px 40px rgba(239,68,68,0.08); }
+
+.controls { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:8px; }
+.score { font-weight:800; padding:8px 10px; border-radius:10px; background:rgba(0,0,0,0.12) }
+.progress { height:10px; background:rgba(255,255,255,0.06); border-radius:999px; overflow:hidden; margin-top:8px; }
+.progress > i { display:block; height:100%; width:0%; background:linear-gradient(90deg,#ffdd59,#ff6b6b); transition:width .3s ease; }
+
+.explain { background:rgba(0,0,0,0.08); padding:10px; border-radius:8px; color:#f1f1f1; }
+
+.side .card { position:sticky; top:20px; }
+
+.leaderboard ul{ list-style:none; padding:0; margin:0; }
+.leaderboard li{ display:flex; justify-content:space-between; padding:8px; border-radius:8px; background:rgba(255,255,255,0.03); margin-bottom:8px; }
+
+.input { width:100%; padding:10px; border-radius:8px; border:none; outline:none; margin-top:8px; }
+
+.footer { margin-top:12px; text-align:center; font-size:13px; color:rgba(255,255,255,0.8) }
+.small-muted { font-size:13px; color:rgba(255,255,255,0.7) }
+</style>
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="logo">EB</div>
+      <div>
+        <div class="h1">ExamBangla</div>
+        <div class="h2">Class 6–9 • Lessons • Timer • Uneditable Share Card</div>
+      </div>
+    </header>
+
+    <div class="grid">
+      <!-- main -->
+      <main>
+        <!-- selectors -->
+        <section class="card" id="startCard">
+          <div class="title">শুরু করো — Class / Subject / Lesson</div>
+          <div class="small">Step 1: Class নির্বাচন</div>
+          <div class="row" id="classRow">
+            <button class="btn" onclick="chooseClass(6)">Class 6</button>
+            <button class="btn" onclick="chooseClass(7)">Class 7</button>
+            <button class="btn" onclick="chooseClass(8)">Class 8</button>
+            <button class="btn" onclick="chooseClass(9)">Class 9</button>
+          </div>
+
+          <div class="small" style="margin-top:10px">Step 2: Subject</div>
+          <div class="row">
+            <button class="btn secondary" onclick="chooseSubject('BGS')">Bangladesh & World (BGS)</button>
+            <button class="btn secondary" onclick="chooseSubject('Science')">Science</button>
+            <button class="btn secondary" onclick="chooseSubject('Bangla')">Bangla</button>
+            <button class="btn secondary" onclick="chooseSubject('English')">English</button>
+          </div>
+
+          <div class="small" style="margin-top:10px">Step 3: Lesson (select)</div>
+          <select id="lessonSelect" class="select" onchange="chooseLesson(this.value)"><option value="">-- প্রথমে Class ও Subject সিলেক্ট করো --</option></select>
+
+          <div style="margin-top:12px; display:flex; gap:8px;">
+            <button class="btn secondary" id="startBtn" onclick="startQuiz()" disabled>Start Quiz ▶</button>
+            <button class="btn ghost" onclick="toggleShuffle()">Shuffle: ON</button>
+          </div>
+
+          <div style="margin-top:12px" class="small-muted">
+            Timer per question: <input id="timerInput" class="input" type="number" value="30" min="5" max="600" style="width:110px; display:inline-block" />
+          </div>
+
+          <div style="margin-top:12px" class="small-muted">
+            Developer: Md Tishan — Class 8 • ExamBangla
+          </div>
+        </section>
+
+        <!-- quiz -->
+        <section class="card hidden" id="quizCard" aria-live="polite">
+          <div class="quiz-area">
+            <div class="question" id="questionText">প্রশ্ন লোড হচ্ছে...</div>
+            <div class="options" id="optionsArea"></div>
+            <div id="explainBox" class="explain hidden"></div>
+            <div class="progress"><i id="progressBar"></i></div>
+            <div class="controls">
+              <div style="display:flex;gap:10px;align-items:center">
+                <div class="score" id="scoreBox">Score: 0</div>
+                <div class="small" id="qCount">প্রশ্ন 0 / 0</div>
+                <div class="small" id="timerBox">⏱ 0s</div>
+              </div>
+              <div>
+                <button class="btn ghost" onclick="abortQuiz()">Abort</button>
+                <button class="btn secondary" id="nextBtn" onclick="onNext()">Next ➜</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- result -->
+        <section class="card hidden" id="resultCard">
+          <div class="title">ফলাফল</div>
+          <div class="small" id="finalText"></div>
+
+          <div style="margin-top:10px">
+            <input id="playerName" class="input" placeholder="তোমার নাম (leaderboard)"/>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <button class="btn secondary" onclick="saveScore()">Save Score</button>
+              <button class="btn ghost" onclick="restart()">Try Again</button>
+              <button class="btn" onclick="generateShareCard()">Share Result (Image)</button>
+            </div>
+          </div>
+
+          <div style="margin-top:14px">
+            <div class="title" style="font-size:16px">🏆 Leaderboard (Top 10)</div>
+            <div class="leaderboard" style="margin-top:8px">
+              <ul id="leaderList"></ul>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <!-- side -->
+      <aside class="side">
+        <div class="card">
+          <div class="title">Quick Leader</div>
+          <div class="small" id="miniLeader">Leaderboard empty</div>
+        </div>
+
+        <div class="card">
+          <div class="title">Lesson Info</div>
+          <div class="small" id="lessonInfo">—</div>
+        </div>
+
+        <div class="card">
+          <div class="title">Controls</div>
+          <div class="small">Clear leaderboard / Export</div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn ghost" onclick="clearLeaderboard()">Clear LB</button>
+            <button class="btn ghost" onclick="exportData()">Export LB</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <div class="footer">ExamBangla • Developed by Md Tishan (Class 8) • Data stored locally</div>
+  </div>
+
+<script>
+/* ============================
+   DATA: Lessons & Questions
+   - Class 8 BGS (Bangladesh & World Studies) - your provided 40 Qs inserted.
+   - Other classes/subjects contain sample questions.
+   ============================ */
+
+/* LESSONS per class & subject */
+const LESSONS = {
+  6: { BGS:["Basic BGS"], Science:["Basic Science"], Bangla:["Bangla"], English:["English"] },
+  7: { BGS:["Basic BGS"], Science:["Basic Science"], Bangla:["Bangla"], English:["English"] },
+  8: { BGS:["ঔপনিবেশিক যুগ ও বাংলার স্বাধীনতা (1757-1858)","ঔপনিবেশিক প্রশাসন ও সামাজিক পরিবর্তন","মুক্তি আন্দোলন ও জাতীয়তাবাদী উন্মেষ","ঐতিহাসিক ও প্রাসঙ্গিক তথ্য"], Science:["মহাকাশ","প্রাকৃতিক গ্রহ"], Bangla:["Bangla"], English:["English"] },
+  9: { BGS:["BGS 1"], Science:["Science 1"], Bangla:["Bangla"], English:["English"] }
+};
+
+/* BANK: class -> subject -> lesson -> array of q objects {q,opts,ans,explain} */
+/* Inserting the 40 BGS Qs you provided (organized into 4 lesson groups as above) */
+const BANK = {
+  6: {
+    BGS: { "Basic BGS":[
+      {q:"বাংলায় ঔপনিবেশিক শাসনকাল কত সাল থেকে শুরু হয়?", opts:["১৮৫৭","১৭৫৭","১৬০০","১৮৫৮"], ans:"১৭৫৭", explain:"ঐতিহাসিকভাবে পলাশীর যুদ্ধে (১৭৫৭) ব্রিটিশ প্রভাব বৃদ্ধি পায়।"}
+    ]},
+    Science: {"Basic Science":[ {q:"পানির স্থির বরফ কোন তাপমাত্রায় হয়?", opts:["0°C","100°C","-10°C","50°C"], ans:"0°C", explain:"জলের ফ্রিজিং পয়েন্ট 0°C।"} ]},
+    Bangla: {"Bangla":[ {q:"বাংলায় 'বই' শব্দের বিপরীত কী? (উদাহরণ)", opts:["খাতা","কলম","কাগজ","পাখি"], ans:"খাতা", explain:"উদাহরণ স্বরূপ।"} ]},
+    English: {"English":[ {q:"Plural of 'book'?", opts:["books","bookes","bok","bookies"], ans:"books", explain:"Plural is books."} ]}
+  },
+
+  7: {
+    BGS: {"Basic BGS":[ {q:"বাংলার প্রথম ভারতীয় রাষ্ট্র কোনটি ছিল না?", opts:["পাংশী","বিংশতক","উত্তর","উত্ত পেন"], ans:"পাংশী", explain:"--"} ]},
+    Science: {"Basic Science":[ {q:"বায়ুর প্রধান গ্যাস কোনটি?", opts:["অক্সিজেন","নাইট্রোজেন","CO2","হাইড্রোজেন"], ans:"নাইট্রোজেন", explain:"বায়ুর মোটামুটি ৭৮% নাইট্রোজেন।"} ]},
+    Bangla: {"Bangla":[ {q:"বাংলার বর্ণমালায় স্বরবর্ণ কয়টি?", opts:["১১","৯","৭","১০"], ans:"১১", explain:"বাংলায় ১১টি স্বরবর্ণ।"} ]},
+    English: {"English":[ {q:"Which is a noun?", opts:["Run","Beautiful","School","Quickly"], ans:"School", explain:"School is a noun."} ]}
+  },
+
+  8: {
+    BGS: {
+      "ঔপনিবেশিক যুগ ও বাংলার স্বাধীনতা (1757-1858)": [
+        {q:"বাংলায় ঔপনিবেশিক শাসনকাল কত সাল থেকে শুরু হয়?", opts:["১৮৫৭ সাল","১৭৫৭ সাল","১৬০০ সাল","১৮৫৮ সাল"], ans:"১৭৫৭ সাল", explain:"পলাশীর যুদ্ধ (১৭৫৭) অঙ্গ হিসেবে ব্রিটিশ প্রভাব শিল্পরূপে দৃশ্যমান হয়।"},
+        {q:"কোন যুদ্ধের পর বাংলায় ব্রিটিশ ইস্ট ইন্ডিয়া কোম্পানির শাসন প্রতিষ্ঠিত হয়?", opts:["বক্সারের যুদ্ধ","পানিপথের তৃতীয় যুদ্ধ","পলাশীর যুদ্ধ","টিপু_sultánের যুদ্ধ"], ans:"পলাশীর যুদ্ধ", explain:"পলাশীর যুদ্ধে (১৭৫৭) কোম্পানির নিয়ন্ত্রণ বাড়ে।"},
+        {q:"পলাশীর যুদ্ধ কত সালে সংঘটিত হয়?", opts:["১৭৫৬","১৭৬৪","১৭৫৭","১৮০০"], ans:"১৭৫৭", explain:"ইতিহাসিকভাবে ১৭৫৭ সালে সংঘটিত।"},
+        {q:"সিরাজউদ্দৌলা কত বয়সে বাংলা-বিহার-উড়িষ্যার সিংহাসনে বসেন?", opts:["২০","২২","২৫","৩০"], ans:"২২", explain:"সিরাজউদ্দৌলা ~২২ বছর বয়সে শাসনভার গ্রহণ করেন।"},
+        {q:"নবাব সিরাজউদ্দৌলার পতনের পর কে বাংলার নবাব হন?", opts:["মীর কাসিম","মীর জাফর","ক্লাইভ","আলিবর্দি খাঁ"], ans:"মীর জাফর", explain:"মীর জাফরকে নবাব হিসেবে প্রতিষ্ঠা করা হয়।"},
+        {q:"ইস্ট ইন্ডিয়া কোম্পানিকে বাণিজ্যের ক্ষেত্রে বিশেষ সুবিধা দেওয়ার প্রধান কারণ কী ছিল?", opts:["বাঙালি পণ্যের চাহিদা","ব্রিটিশ প্রশাসনিক ক্ষমতা বৃদ্ধি","নবাবের দরবারে ষড়যন্ত্র","ইউরোপীয় বণিকদের আগমন"], ans:"নবাবের দরবারে ষড়যন্ত্র", explain:"নবাবের দুর্বলতা ও ষড়যন্ত্র কোম্পানির সুবিধা দেয়।"},
+        {q:"বাংলায় ইউরোপীয় বণিকদের মধ্যে বাণিজ্যের জন্য প্রথম কারা আসেন?", opts:["ওলন্দাজ","পর্তুগিজ","ফরাসি","ইংরেজ"], ans:"পর্তুগিজ", explain:"পর্তুগিজই প্রথম বঙ্গ উপকূলে বাণিজ্য শুরু করে।"},
+        {q:"ছিয়াত্তরের মন্বন্তর কত সালে হয়েছিল?", opts:["১৭৫৭","১৭৭০","১৭৬৫","১৭৯৩"], ans:"১৭৭০", explain:"১৭৭০ সালের দুর্ভিক্ষ ছিয়াত্তরের নামেও পরিচিত।"},
+        {q:"বাংলায় দ্বৈত শাসন কে প্রবর্তন করেন?", opts:["লর্ড ক্লাইভ","ওয়ারেন হেস্টিংস","লর্ড কর্নওয়ালিস","লর্ড বেন্টিঙ্ক"], ans:"লর্ড ক্লাইভ", explain:"লর্ড ক্লাইভের নীতিতে দ্বৈত শাসন দেখা যায়।"},
+        {q:"বাংলার শাসন ক্ষমতা ইংরেজদের হাতে যাওয়ার প্রধান কারণগুলির মধ্যে কোনটি ছিল?", opts:["ইংরেজদের সামরিক দুর্বলতা","ইউরোপীয় বণিকদের প্রতিযোগিতা","নবাবের দূরদর্শিতার অভাব ও ষড়যন্ত্র","ছিয়াত্তরের মন্বন্তর"], ans:"নবাবের দূরদর্শিতার অভাব ও ষড়যন্ত্র", explain:"নবাবের ভেতরের দুর্বলতা ও ষড়যন্ত্র প্রধান ভূমিকা পালন করে।"}
+      ],
+      "ঔপনিবেশিক প্রশাসন ও সামাজিক পরিবর্তন": [
+        {q:"ইস্ট ইন্ডিয়া কোম্পানির প্রধান কাজ কী ছিল?", opts:["প্রশাসন","শিক্ষা","লবণ ও বস্ত্র ব্যবসা","কৃষি"], ans:"লবণ ও বস্ত্র ব্যবসা", explain:"প্রাথমিক উদ্দেশ্য ছিল বাণিজ্য, বিশেষত লবণ ও বস্ত্র।"},
+        {q:"১৭৯৩ সালে চিরস্থায়ী বন্দোবস্তের ফলে কি শ্রেণী তৈরি হয়?", opts:["কৃষক","জমিদার","শ্রমিক","কারিগর"], ans:"জমিদার", explain:"চিরস্থায়ী বন্দোবস্ত জমিদার শ্রেণীর বিকাশ ঘটায়।"},
+        {q:"কোন গভর্নর জেনারেলের সময়ে ইস্ট ইন্ডিয়া কোম্পানি পূর্ণ ক্ষমতা লাভ করে?", opts:["লর্ড ক্লাইভ","ওয়ারেন হেস্টিংস","লর্ড বেন্টিঙ্ক","লর্ড ডালহৌসি"], ans:"ওয়ারেন হেস্টিংস", explain:"ওয়রেন হেস্টিংসের আমলে কোম্পানি পরিচালন ক্ষমতায় আসে।"},
+        {q:"চিরস্থায়ী বন্দোবস্ত কে প্রবর্তন করেন?", opts:["ওয়ারেন হেস্টিংস","লর্ড ওয়েলেসলি","লর্ড কর্নওয়ালিস","লর্ড ডালহৌসি"], ans:"লর্ড কর্নওয়ালিস", explain:"চিরস্থায়ী বন্দোবস্তের নীতি কর্নওয়ালিসের আমলে প্রবর্তিত।"},
+        {q:"ইংরেজরা কলকাতা মাদ্রাসা স্থাপন করে কত সালে?", opts:["১৮৫৭","১৮৪৫","১৭৮১","১৯০৫"], ans:"১৭৮১", explain:"১৭৮১ সালে কলকাতায় প্রতিষ্ঠান গড়ে ওঠে।"},
+        {q:"কোনটি আধুনিক শিক্ষাকেন্দ্র হিসেবে প্রতিষ্ঠা লাভ করে?", opts:["চট্টগ্রাম কলেজ","ঢাকা বিশ্ববিদ্যালয়","প্রেসিডেন্সি কলেজ","কলকাতা বিশ্ববিদ্যালয়"], ans:"কলকাতা বিশ্ববিদ্যালয়", explain:"কলকাতা বিশ্ববিদ্যালয় আধুনিক শিক্ষার কেন্দ্র হিসেবে পরিচিত।"},
+        {q:"১৮৫৭ সিপাহী বিদ্রোহের প্রধান কারণ কি ছিল?", opts:["কোম্পানির ব্যর্থতা","ইউরোপীয় আগমন","জনগণের অসন্তোষ","শিক্ষা অবনতি"], ans:"জনগণের অসন্তোষ", explain:"সিপাহী বিদ্রোহ ব্রিটিশ শাসনের অসন্তোষের ফল।"},
+        {q:"সিপাহী বিদ্রোহের পর ১৮৫৮ সালে কোন আইনে কোম্পানির শাসন শেষ হয়?", opts:["রেগুলেটিং অ্যাক্ট","ভারত শাসন আইন","চিরস্থায়ী বন্দোবস্ত","মর্লে-মিন্টো"], ans:"ভারত শাসন আইন", explain:"ভারত শাসন আইন (1858) কোম্পানির শাসন শেষ করে।"},
+        {q:"ব্রিটিশ শাসনকালে কার আমলে নীল বিদ্রোহ সংঘটিত হয়?", opts:["লর্ড ডালহৌসি","লর্ড ক্যানিং","লর্ড কার্জন","লর্ড রিপন"], ans:"লর্ড ক্যানিং", explain:"নীল বিদ্রোহ ক্যানিং আমলে সংঘটিত।"},
+        {q:"ব্রিটিশ শাসনের অবসান হয় কোন সালে?", opts:["১৯০৫","১৯৪৭","১৯১৮","১৯৪০"], ans:"১৯৪৭", explain:"১৯৪৭ সালে ব্রিটিশ শাসন অবসান ও স্বাধীনতা লাভ।"}
+      ],
+      "মুক্তি আন্দোলন ও জাতীয়তাবাদের উন্মেষ": [
+        {q:"কংগ্রেস ও মুসলিম লীগ ঐক্যবদ্ধ হয়ে কবে ১৯০৬ সালের প্রস্তাব উপস্থাপন করে?", opts:["১৯১০","১৯১৬","১৯২৫","১৯৩৩"], ans:"১৯১৬", explain:"১৯১৬ সালে ঐক্য ও প্রস্তাব লিপিবদ্ধ।"},
+        {q:"বাঙালির প্রথম মুসলিম শাসক কে ছিলেন (দিল্লিতে ভিত্তি স্থাপন)?", opts:["বখতিয়ার খলজি","ইলিয়াস শাহ","সিরাজউদ্দৌলা","মীর জাফর"], ans:"বখতিয়ার খলজি", explain:"বখতিয়ার খলজি দিল্লিতে শাসন প্রতিষ্ঠা করেন।"},
+        {q:"নবাব আলিবর্দি খাঁর মৃত্যুর পর কে নবাব হন?", opts:["মীর জাফর","সিরাজউদ্দৌলা","মীর কাসিম","শুজাউদ্দৌলা"], ans:"সিরাজউদ্দৌলা", explain:"সিরাজউদ্দoula নবাব হন।"},
+        {q:"ইস্ট ইন্ডিয়া কোম্পানির প্রথম প্রধান বাণিজ্যিক উদ্দেশ্য কি ছিল?", opts:["সামরিক ঘাঁটি","লবণ ও কাপড়","প্রশাসন","জমিদারি"], ans:"লবণ ও কাপড়", explain:"বাণিজ্যিক উদ্দেশ্য ছিল লবণ ও কাপড়।"},
+        {q:"কলকাতা কেন্দ্রিক বাঙালি জাতীয়তাবাদের উন্মেষ কবে?", opts:["১৮৬০ দশক","১৮৯০ দশক","১৯০০ দশক","১৯৩০ দশক"], ans:"১৮৬০ দশক", explain:"১৮৬0-এর দশকে বাঙালি জাতীয়তাবাদ শুরু লক্ষ্য করা যায়।"},
+        {q:"ভারতবর্ষে ব্রিটিশ শাসন সরাসরি শুরু হয় কোন সালে?", opts:["১৭৫৭","১৮৫৭","১৮৫৮","১৯০৫"], ans:"১৮৫৮", explain:"সিপাহী বিদ্রোহ পর 1858 সালে ব্রিটিশ সরকার ক্ষমতা নেয়।"},
+        {q:"ব্রিটিশ শাসনকালে কার আমলে আধুনিক শিক্ষা বিস্তার ঘটে?", opts:["রামমোহন রায়","লর্ড বেন্টিঙ্ক","বিদ্যাসাগর","লর্ড কর্নওয়ালিস"], ans:"লর্ড বেন্টিঙ্ক", explain:"বেন্টিঙ্কের আমলে শিক্ষা সম্প্রসারিত হয়।"},
+        {q:"১৮৪৩ সালে প্রতিষ্ঠিত প্রতিষ্ঠানটি কোনটি?", opts:["জমিদার সভা","ব্রিটিশ ইন্ডিয়া সোসাইটি","জাতীয় কংগ্রেস","মুসলিম লীগ"], ans:"ব্রিটিশ ইন্ডিয়া সোসাইটি", explain:"ব্রিটিশ ইন্ডিয়া সোসাইটি প্রথম প্রতিরোধ পর্যায়ে সক্রিয় হয়।"},
+        {q:"১৯৪০ সালের লাহোর প্রস্তাবের বিষয় কি ছিল?", opts:["যুক্ত নির্বাচন","পৃথক মুসলিম রাষ্ট্র","হিন্দু স্বশাসন","ব্রিটিশ সমর্থন"], ans:"পৃথক মুসলিম রাষ্ট্র", explain:"১৯৪০-র লাহোর প্রস্তাবে আলাদা মুসলিম রাষ্ট্র দাবি করা হয়।"},
+        {q:"১৯৪৭ সালে ভারত বিভক্ত হলে বাংলাও কয় প্রদেশে বিভক্ত হয়?", opts:["২","৩","৪","৫"], ans:"২", explain:"পূর্ব ও পশ্চিম বাংলায় বিভক্ত হয়।"}
+      ],
+      "ঐতিহাসিক ও প্রাসঙ্গিক তথ্য": [
+        {q:"ঐ সময়কালকে বাংলায় ঔপনিবেশিক যুগ বলা হয়?", opts:["১৬০০-১৯০০","১৭৫৭-১৯৪৭","১৮৫৭-১৯৪০","১৭০০-১৮০০"], ans:"১৭৫৭-১৯৪৭", explain:"ঔপনিবেশিক যুগ সাধারণত ১৭৫৭-১৯৪৭ ধরা হয়।"},
+        {q:"মুঘল সুবেদার ইসলাম খাঁ ঢাকা কে রাজধানী করেন কখন?", opts:["১৫০০","১৬১০","১৬৫০","১৭০০"], ans:"১৬১০", explain:"১৬১০ সালে উল্লেখিত।"},
+        {q:"ইউরোপীয় বণিকদের মধ্যে প্রথম আগমন কোনটি?", opts:["ওলন্দাজ","ফরাসি","ইংরেজ","পর্তুগিজ"], ans:"পর্তুগিজ", explain:"পর্তুগিজ প্রথম বঙ্গ উপকূলে বাণিজ্য শুরু করে।"},
+        {q:"১৭৭২ থেকে কোম্পানি শাসন কি মাধ্যমে চালু হত?", opts:["নবাবের প্রতিনিধি","আঞ্চলিক শাসক","গভর্নর জেনারেল","ব্রিটিশ রাজ"], ans:"গভর্নর জেনারেল", explain:"গভর্নর জেনারেলের মাধ্যমে প্রশাসন পরিচালনা হতো।"},
+        {q:"১৮১৩ সালের সনদ আইনে কোম্পানির কী ঘটে?", opts:["একচেটিয়া সীমিত হয়","সম্পূর্ণ ক্ষমতা যায়","শাসন শেষ","কলকাতা বিশ্ববিদ্যালয়"], ans:"একচেটিয়া সীমিত হয়", explain:"1813-এর রোচনা কোম্পানির একচেটিয়া বাণিজ্য সীমিত করে।"},
+        {q:"১৮৬০-র দশকে কলকাতায় কী জন্ম নেয়?", opts:["ধর্মীয় আলোচনা","জাতীয়তাবাদী আন্দোলন","বাণিজ্য প্রতিযোগিতা","কৃষি সংস্কার"], ans:"জাতীয়তাবাদী আন্দোলন", explain:"১৮৬০-র দশকে জাতীয়তাবাদী ভাবনা আবির্ভূত হয়।"},
+        {q:"ঔপনিবেশিক যুগে বাংলার সম্পদ নিকাশি কী নামে পরিচিত?", opts:["দ্বৈত শাসন","চিরস্থায়ী বন্দোবস্ত","সম্পদ নির্গমন","অবাধ বাণিজ্য"], ans:"সম্পদ নির্গমন", explain:"Drain of Wealth নামে সমালোচিতায় বর্ণিত।"},
+        {q:"ব্রিটিশ শাসনকালে 'স্বদেশী আন্দোলন' কোন ঘটনার প্রতিক্রিয়া?", opts:["নীল বিদ্রোহ","সিপাহী বিদ্রোহ","বঙ্গভঙ্গ","চিরস্থায়ী বন্দোবস্ত"], ans:"বঙ্গভঙ্গ", explain:"বঙ্গভঙ্গের পর স্বদেশী আন্দোলন জোরে ওঠে।"},
+        {q:"১৮৩০ সালে রাজা রামমোহন রায় প্রতিষ্ঠিত সংগঠন কোনটি?", opts:["মুসলিম লীগ","জাতীয় কংগ্রেস","ব্রিটিশ ইন্ডিয়া সোসাইটি","ব্রাহ্ম সমাজ"], ans:"ব্রাহ্ম সমাজ", explain:"রামমোহন রায়ের ব্রাহ্ম সমাজ সংস্কারে গুরুত্বপূর্ণ ভূমিকা।"}
+      ]
+    },
+    Science: { "মহাকাশ":["sample question"] }, Bangla:{"Bangla":["sample"]}, English:{"English":["sample"]}
+  },
+
+  9: {
+    BGS: {"BGS 1":[ {q:"বাংলাদেশ স্বাধীন হয় কবে?", opts:["১৯৭০","১৯৭১","১৯৭২","১৯৭৩"], ans:"১৯৭১", explain:"১৯৭১ সাল স্বাধীনতার বছর।"} ]},
+    Science: {"Science 1":[ {q:"পানি কি রसायনিক যৌগ?", opts:["হ্যাঁ","না","মধ্যে","কখনও না"], ans:"হ্যাঁ", explain:"পানি একটি যৌগ H2O।"} ]},
+    Bangla: {"Bangla":[ {q:"বাংলা ভাষার রচয়িতা কে?", opts:["রবীন্দ্রনাথ","কাজী নজরুল","শামসুর","বেলা"], ans:"রবীন্দ্রনাথ", explain:"উদাহরণ।"} ]},
+    English: {"English":[ {q:"Who wrote 'Macbeth'?", opts:["Shakespeare","Dickens","Austen","Rowling"], ans:"Shakespeare", explain:"William Shakespeare."} ]}
+  }
+};
+
+/* ============== STATE ============== */
+let ACTIVE_CLASS = null, ACTIVE_SUB = null, ACTIVE_LESSON = null;
+let QUESTIONS = [], CURRENT = 0, SCORE = 0, ANSWERED=false, TIMER_ID=null, TIME_LEFT=0;
+let SHUFFLE = true;
+
+/* ============== UI refs ============== */
+const lessonSelect = document.getElementById('lessonSelect');
+const startBtn = document.getElementById('startBtn');
+const lessonInfo = document.getElementById('lessonInfo');
+
+/* ======= functions to choose class/subject/lesson ======= */
+function chooseClass(c){
+  ACTIVE_CLASS = Number(c);
+  populateLessons();
+  startBtn.disabled = !(ACTIVE_CLASS && ACTIVE_SUB);
+}
+function chooseSubject(s){
+  // support BGS alias from UI
+  if(s === 'BGS') ACTIVE_SUB = 'BGS'; else ACTIVE_SUB = s;
+  populateLessons();
+  startBtn.disabled = !(ACTIVE_CLASS && ACTIVE_SUB);
+}
+function populateLessons(){
+  lessonSelect.innerHTML = '';
+  if(!ACTIVE_CLASS || !ACTIVE_SUB || !LESSONS[ACTIVE_CLASS] || !LESSONS[ACTIVE_CLASS][ACTIVE_SUB]){
+    lessonSelect.innerHTML = '<option value="">-- প্রথমে Class ও Subject সিলেক্ট করো --</option>';
+    lessonInfo.innerText = 'Select class & subject first';
+    startBtn.disabled = true;
+    return;
+  }
+  const arr = LESSONS[ACTIVE_CLASS][ACTIVE_SUB];
+  lessonSelect.innerHTML = '<option value="">-- একটি Lesson সিলেক্ট করো --</option>';
+  arr.forEach(l=>{ const o = document.createElement('option'); o.value = l; o.innerText = l; lessonSelect.appendChild(o); });
+  lessonInfo.innerText = `Selected: Class ${ACTIVE_CLASS} • ${ACTIVE_SUB}`;
+  startBtn.disabled = false;
+}
+function chooseLesson(v){ ACTIVE_LESSON = v; }
+
+/* ======= start quiz ======= */
+function startQuiz(){
+  const t = Number(document.getElementById('timerInput').value) || 30;
+  TIME_PER_Q = Math.max(5, Math.min(600, t));
+  // get questions
+  if(!ACTIVE_CLASS || !ACTIVE_SUB || !ACTIVE_LESSON){ alert('Class/Subject/Lesson সিলেক্ট করো'); return; }
+  const bucket = ((BANK[ACTIVE_CLASS] && BANK[ACTIVE_CLASS][ACTIVE_SUB] && BANK[ACTIVE_CLASS][ACTIVE_SUB][ACTIVE_LESSON]) || []);
+  QUESTIONS = JSON.parse(JSON.stringify(bucket)); // deep copy
+  if(QUESTIONS.length === 0){ alert('এই লেসনে কোন প্রশ্ন নেই — অন্য লেসন সিলেক্ট করো'); return; }
+  if(SHUFFLE) { shuffle(QUESTIONS); QUESTIONS.forEach(q=>shuffle(q.opts)); }
+  CURRENT = 0; SCORE = 0; ANSWERED=false;
+  // UI switch
+  document.getElementById('startCard').classList.add('hidden');
+  document.getElementById('resultCard').classList.add('hidden');
+  document.getElementById('quizCard').classList.remove('hidden');
+  renderQuestion();
+}
+
+/* ======= render question ======= */
+function renderQuestion(){
+  clearTimer();
+  ANSWERED = false;
+  const q = QUESTIONS[CURRENT];
+  document.getElementById('questionText').innerText = q.q;
+  const optsArea = document.getElementById('optionsArea'); optsArea.innerHTML = '';
+  q.opts.forEach(opt=>{
+    const b = document.createElement('button'); b.className='opt'; b.innerText = opt;
+    b.onclick = ()=>selectOption(b,opt);
+    optsArea.appendChild(b);
+  });
+  document.getElementById('explainBox').classList.add('hidden'); document.getElementById('explainBox').innerText='';
+  updateProgress();
+  // timer
+  TIME_LEFT = Number(document.getElementById('timerInput').value) || 30; updateTimer();
+  TIMER_ID = setInterval(()=>{ TIME_LEFT--; updateTimer(); if(TIME_LEFT<=0){ clearTimer(); onTimeout(); } },1000);
+}
+function updateProgress(){
+  const pct = QUESTIONS.length? Math.round((CURRENT/QUESTIONS.length)*100):0;
+  document.getElementById('progressBar').style.width = pct + '%';
+  document.getElementById('scoreBox').innerText = `Score: ${SCORE}`;
+  document.getElementById('qCount').innerText = `প্রশ্ন ${Math.min(CURRENT+1,QUESTIONS.length)} / ${QUESTIONS.length}`;
+}
+function updateTimer(){ document.getElementById('timerBox').innerText = `⏱ ${TIME_LEFT}s`; }
+
+/* ======= select option ======= */
+function selectOption(btn, chosen){
+  if(ANSWERED) return;
+  ANSWERED = true;
+  // disable all
+  document.querySelectorAll('#optionsArea .opt').forEach(b=>b.disabled=true);
+  const q = QUESTIONS[CURRENT];
+  if(chosen === q.ans){ btn.classList.add('correct'); SCORE++; }
+  else { btn.classList.add('wrong'); // highlight correct
+    document.querySelectorAll('#optionsArea .opt').forEach(b=>{ if(b.innerText === q.ans) b.classList.add('correct'); });
+  }
+  if(q.explain){ const ex = document.getElementById('explainBox'); ex.innerText = q.explain; ex.classList.remove('hidden'); }
+  updateProgress(); clearTimer();
+}
+
+/* ======= next & timeout ======= */
+function onNext(){
+  // if not answered, treat as skipped (show correct)
+  if(!ANSWERED){
+    document.querySelectorAll('#optionsArea .opt').forEach(b=>{ b.disabled=true; if(b.innerText === QUESTIONS[CURRENT].ans) b.classList.add('correct'); });
+    if(QUESTIONS[CURRENT].explain){ const ex=document.getElementById('explainBox'); ex.innerText=QUESTIONS[CURRENT].explain; ex.classList.remove('hidden'); }
+  }
+  if(CURRENT < QUESTIONS.length - 1){ CURRENT++; renderQuestion(); } else showResult();
+}
+function onTimeout(){
+  // show correct, then auto next after short delay
+  document.querySelectorAll('#optionsArea .opt').forEach(b=>{ b.disabled=true; if(b.innerText === QUESTIONS[CURRENT].ans) b.classList.add('correct'); });
+  if(QUESTIONS[CURRENT].explain){ const ex=document.getElementById('explainBox'); ex.innerText=QUESTIONS[CURRENT].explain; ex.classList.remove('hidden'); }
+  ANSWERED=true;
+  updateProgress();
+  setTimeout(()=>{ if(CURRENT < QUESTIONS.length -1){ CURRENT++; renderQuestion(); } else showResult(); }, 1100);
+}
+function clearTimer(){ if(TIMER_ID){ clearInterval(TIMER_ID); TIMER_ID=null; } }
+
+/* ======= show result & leaderboard ======= */
+function showResult(){
+  clearTimer();
+  document.getElementById('quizCard').classList.add('hidden');
+  document.getElementById('resultCard').classList.remove('hidden');
+  document.getElementById('finalText').innerText = `তুমি মোট ${QUESTIONS.length} এর মধ্যে ${SCORE} সঠিক উত্তর করেছো।`;
+  renderLeaderboard();
+}
+function saveScore(){
+  const name = (document.getElementById('playerName').value || 'Guest').trim().slice(0,30);
+  const rec = { name, score:SCORE, total:QUESTIONS.length, cls:ACTIVE_CLASS, sub:ACTIVE_SUB, lesson:ACTIVE_LESSON, at:new Date().toISOString() };
+  const key='ExamBangla_LB_v2'; let data = JSON.parse(localStorage.getItem(key)||'[]');
+  data.push(rec); data.sort((a,b)=> (b.score - a.score) || (new Date(b.at)- new Date(a.at)) );
+  localStorage.setItem(key, JSON.stringify(data.slice(0,200)));
+  alert('Score saved!');
+  renderLeaderboard();
+}
+function renderLeaderboard(){
+  const key='ExamBangla_LB_v2'; const data = JSON.parse(localStorage.getItem(key)||'[]');
+  const list = document.getElementById('leaderList'); list.innerHTML='';
+  if(data.length===0){ list.innerHTML='<li class="small">কেউ নেই — তুমি প্রথম হতে পারো!</li>'; }
+  data.slice(0,10).forEach((r,i)=>{ const li=document.createElement('li'); li.innerHTML=`<strong>${i+1}. ${escapeHtml(r.name)}</strong><span class="small">${r.score}/${r.total}</span>`; list.appendChild(li); });
+  document.getElementById('miniLeader').innerText = data.length? `${data[0].name} • ${data[0].score}/${data[0].total}` : 'Leaderboard empty';
+}
+
+/* ======= share: generate uneditable image card via canvas ======= */
+async function generateShareCard(){
+  // create canvas with score info
+  const canvas = document.createElement('canvas'); canvas.width = 1000; canvas.height = 600;
+  const ctx = canvas.getContext('2d');
+  // background
+  const grad = ctx.createLinearGradient(0,0,canvas.width,canvas.height);
+  grad.addColorStop(0,'#06b6d4'); grad.addColorStop(1,'#3b82f6');
+  ctx.fillStyle = grad; ctx.fillRect(0,0,canvas.width,canvas.height);
+  // header
+  ctx.fillStyle = 'rgba(255,255,255,0.95)'; ctx.fillRect(40,40,920,100);
+  ctx.fillStyle = '#06283D'; ctx.font = 'bold 36px Poppins'; ctx.fillText('🏆 ExamBangla Result', 80, 95);
+  // score box
+  ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.fillRect(60,170,880,320);
+  ctx.fillStyle = '#fff'; ctx.font = '700 48px Poppins';
+  const name = (document.getElementById('playerName').value || 'Guest');
+  ctx.fillText(`Name: ${name}`, 90, 240);
+  ctx.fillText(`Class: ${ACTIVE_CLASS || '-'}`, 90, 300);
+  ctx.fillText(`Subject: ${ACTIVE_SUB || '-'}`, 90, 360);
+  ctx.fillStyle = '#ffdd59'; ctx.fillText(`Score: ${SCORE} / ${QUESTIONS.length}`, 90, 430);
+  ctx.fillStyle = '#fff'; ctx.font = '16px Poppins';
+  ctx.fillText(`Lesson: ${ACTIVE_LESSON || '-'}`, 90, 480);
+  ctx.fillText(`Date: ${new Date().toLocaleString()}`, 90, 510);
+  ctx.fillText(`Powered by ExamBangla`, 700, 560);
+
+  // convert to blob and share
+  canvas.toBlob(async (blob)=>{
+    if(!blob){ alert('Share failed — try download'); return; }
+    const file = new File([blob], 'ExamBangla_result.png', { type: 'image/png' });
+    // try Web Share API
+    if(navigator.canShare && navigator.canShare({ files: [file] })){
+      try{ await navigator.share({ files:[file], title:'ExamBangla Result', text:`I scored ${SCORE}/${QUESTIONS.length} on ExamBangla` }); return; }
+      catch(e){ /* share failed or canceled */ }
+    }
+    // fallback: download
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href=url; a.download='ExamBangla_result.png'; document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    alert('Result image downloaded — আপনি এটি শেয়ার করতে পারবেন। (image is not editable text)');
+  }, 'image/png');
+}
+
+/* ======= helpers ======= */
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function escapeHtml(s){ return (s+'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function toggleShuffle(){ SHUFFLE = !SHUFFLE; alert('Shuffle ' + (SHUFFLE? 'ON':'OFF')); }
+function abortQuiz(){ if(confirm('কুইজ থেকে বের হতে চান?')){ restart(); } }
+function restart(){ // back to start
+  clearTimer();
+  ACTIVE_CLASS = ACTIVE_SUB = ACTIVE_LESSON = null;
+  QUESTIONS = []; CURRENT = 0; SCORE = 0; ANSWERED = false;
+  document.getElementById('startCard').classList.remove('hidden');
+  document.getElementById('quizCard').classList.add('hidden');
+  document.getElementById('resultCard').classList.add('hidden');
+  document.getElementById('lessonSelect').innerHTML = '<option value="">-- প্রথমে Class ও Subject সিলেক্ট করো --</option>';
+  document.getElementById('playerName').value = '';
+  renderLeaderboard();
+}
+function clearLeaderboard(){ if(confirm('লিডারবোর্ড মুছে ফেলতে চান?')){ localStorage.removeItem('ExamBangla_LB_v2'); renderLeaderboard(); alert('Cleared'); } }
+function exportData(){ const data = localStorage.getItem('ExamBangla_LB_v2') || '[]'; const blob = new Blob([data], {type:'application/json'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download='exam_bangla_leaderboard.json'; a.click(); URL.revokeObjectURL(url); }
+
+/* ======= init ======= */
+document.addEventListener('DOMContentLoaded', ()=>{
+  // populate lesson select initial placeholder
+  document.getElementById('lessonSelect').innerHTML = '<option value="">-- প্রথমে Class ও Subject সিলেক্ট করো --</option>';
+  renderLeaderboard();
+});
+</script>
+</body>
+</html>
